@@ -19,3 +19,5 @@ This project is mainly inspired by [goslate](https://bitbucket.org/zhuoqiang/gos
 	* https://bitbucket.org/zhuoqiang/goslate
 * TTS
 	* https://github.com/hungtruong/Google-Translate-TTS/
+* PyAudio
+	* http://people.csail.mit.edu/hubert/pyaudio
