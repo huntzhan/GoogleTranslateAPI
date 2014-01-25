@@ -10,8 +10,10 @@ _GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
 _RECONNECT_TIMES = 5
 _TIMEOUT = 30
 
+_MAX_LENGTH = 2000
 _SENTENCES = 'sentences'
 _SRC = 'src'
+_TRANS = 'trans'
 
 
 class _TranslateMinix(object):
@@ -121,9 +123,11 @@ class _TranslateMinix(object):
         """
 
         assert type(src_texts) is list
+
+        executor = ThreadPoolExecutor(max_workers=len(src_texts))
         threads = []
         for src_text in src_texts:
-            future = ThreadPoolExecutor.submit(
+            future = executor.submit(
                 self._basic_request,
                 src_lang,
                 tgt_lang,
@@ -160,7 +164,8 @@ class _SplitTextMinix(object):
         Return Value:
             True for unicode punctuation and False for everything else.
         """
-        if unicodedata.category(character).startswith('P'):
+
+        if unicodedata.category(character) == 'Po':
             return True
         else:
             return False
@@ -175,6 +180,7 @@ class _SplitTextMinix(object):
         Return Value:
             List cotains split text.
         """
+
         split_text = []
         start = 0
         end = max_length
@@ -198,6 +204,19 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
     def __init__(self):
         pass
 
+    def _translate(self, src_lang, tgt_lang, src_text):
+        """
+        Description:
+            Split text and request for JSON dictionary.
+        Return Value:
+            Dictionary contains information about the result of translation.
+        """
+
+        # split text
+        src_texts = self._split_text(src_text, _MAX_LENGTH)
+        # request with concurrency
+        return self._request(src_lang, tgt_lang, src_texts)
+
     def trans_details(self, src_lang, tgt_lang, src_text):
         """
         Description:
@@ -207,8 +226,8 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         Return Value:
             Dictionary contains information about the result of translation.
         """
-        # assure size
-        pass
+
+        return self._translate(src_lang, tgt_lang, src_text)
 
     def trans_sentence(self, src_lang, tgt_lang, src_text):
         """
@@ -217,10 +236,12 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         Return Value:
             String contains information about the result of translation.
         """
-        # split text
-        # query with concurrency
-        # assemble results
-        pass
+
+        json_result = self._translate(src_lang, tgt_lang, src_text)
+        sentences = []
+        for item in json_result[_SENTENCES]:
+            sentences.append(item[_TRANS])
+        return ''.join(sentences)
 
     def languages(self):
         """
