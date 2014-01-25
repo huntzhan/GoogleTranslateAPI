@@ -1,12 +1,17 @@
 # standrad packages
 import unicodedata
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 
 # third-part dependencies
 import requests
 
 
 _GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
+_RECONNECT_TIMES = 5
+_TIMEOUT = 30
+
+_SENTENCES = 'sentences'
+_SRC = 'src'
 
 
 class _TranslateMinix(object):
@@ -15,10 +20,11 @@ class _TranslateMinix(object):
     Low-level method for HTTP communication with google translation service.
     """
 
-    def _request(self, src_lang, tgt_lang, src_text):
+    def _basic_request(self, src_lang, tgt_lang, src_text):
         """
         Description:
-            GET request to translate.google.com.
+            POST request to translate.google.com. If connection failed,
+            _basic_request would try to reconnect the server.
         Return Value:
             Dictionary contains unicode JSON data.
         """
@@ -31,12 +37,114 @@ class _TranslateMinix(object):
             'oe': 'UTF-8',
         }
 
-        response = requests.post(
-            _GOOGLE_TRANS_URL,
-            data={'q': src_text},
-            params=params,
-        )
+        reconnect_times = _RECONNECT_TIMES
+        while True:
+            try:
+                # POST request
+                response = requests.post(
+                    _GOOGLE_TRANS_URL,
+                    data={'q': src_text},
+                    params=params,
+                )
+                break
+            except Exception as e:
+                if reconnect_times == 0:
+                    # has already tried _RECONNECT_TIMES times, request failed.
+                    # if so, just let it crash.
+                    raise e
+                else:
+                    reconnect_times -= 1
+
         return response.json()
+
+    def _merge_jsons(self, jsons):
+        """
+        Description:
+            Receive JSON dictionaries returned by _basic_request. With the
+            observation of JSON response of translate.google.com, we can see
+            that:
+                1. For single word translation, JSON dictionary contains more
+                information compared to sentence translation.
+                2. For multi-word sentence translation, there are three keys in
+                JSON dictionary, 'sentences', 'server_time' and 'src'. The JSON
+                dictionary returned by single word translation, on the other
+                hand, has an extra key 'dict' whose value related to details
+                of the meanings.
+            Therefore, for jsons has the length greater than one, _merge_json
+            would just merge the value of 'sentences' key in jsons. For the
+            accuracy of language detectation, values of 'src' key in jsons
+            would be analysed and stored as a dictionary, with language code as
+            its key and the proportion as its value.
+        Return Value:
+            Dictionary contains unicode JSON data.
+        """
+
+        assert type(jsons) is list
+        if len(jsons) == 1:
+            # adjust src
+            single_json = jsons[0]
+            single_json[_SRC] = {single_json[_SRC]: 1.0}
+            return single_json
+
+        merged_json = {
+            _SENTENCES: [],
+            _SRC: {},
+        }
+        langs = merged_json[_SRC]
+        lang_counter = 0
+        for json in jsons:
+            merged_json[_SENTENCES].extend(json[_SENTENCES])
+
+            lang_code = json[_SRC]
+            if lang_code in langs:
+                langs[lang_code] += 1
+            else:
+                langs[lang_code] = 1
+            lang_counter += 1
+        # analyse src
+        for lang_code, val in langs.items():
+            langs[lang_code] = float(val) / lang_counter
+
+        return merged_json
+
+    def _request(self, src_lang, tgt_lang, src_texts):
+        """
+        Description:
+            Receive src_texts, which should be a list of texts to be
+            translated. _request method calls _basic_request method for http
+            request, and assembles the JSON dictionary returned by
+            _basic_request. For case that _basic_request needs to be called
+            multiple times, concurrent.futures package is adopt for the usage
+            of threads concurrency.
+        Return Value:
+            Dictionary contains unicode JSON data.
+        """
+
+        assert type(src_texts) is list
+        threads = []
+        for src_text in src_texts:
+            future = ThreadPoolExecutor.submit(
+                self._basic_request,
+                src_lang,
+                tgt_lang,
+                src_text,
+            )
+            threads.append(future)
+
+        # check whether all threads finished or not.
+        for future in threads:
+            if future.exception(_TIMEOUT) is None:
+                continue
+            else:
+                # let it crash.
+                raise future.exception()
+
+        # now, all is well.
+        # assemble JSON dictionary(s).
+        merged_json = self._merge_jsons(
+            [future.result() for future in threads],
+        )
+        return merged_json
 
 
 class _SplitTextMinix(object):
@@ -73,6 +181,9 @@ class _SplitTextMinix(object):
         while end < len(text):
             for index in reversed(range(start, end)):
                 if self._check_punctuation(text[index]):
+                    # (index + 1) means that the punctuation is included in the
+                    # sentence(s) to be split. Reason of doing that is based on
+                    # the observation of google TTS HTTP request header.
                     end = index + 1
                     break
             split_text.append(text[start: end])
@@ -97,7 +208,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
             Dictionary contains information about the result of translation.
         """
         # assure size
-        return self._request(src_lang, tgt_lang, src_text)
+        pass
 
     def trans_sentence(self, src_lang, tgt_lang, src_text):
         """
@@ -129,7 +240,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
         # for long sentence, simples and query.
         # for short sentence
-        return self._request('', '', src_text)['src']
+        pass
 
 
 class TTSService(object):
