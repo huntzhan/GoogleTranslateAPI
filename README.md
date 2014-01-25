@@ -14,6 +14,8 @@ This project is mainly inspired by [goslate](https://bitbucket.org/zhuoqiang/gos
 
 * requests
 	* http://requests.readthedocs.org/en/latest/
+* URL
+	* http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
 * goslate
 	* zhuoqiang.me/goslate-free-google-translate-api.html
 	* https://bitbucket.org/zhuoqiang/goslate
