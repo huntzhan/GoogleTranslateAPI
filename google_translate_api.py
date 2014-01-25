@@ -1,4 +1,5 @@
 # standrad packages
+import unicodedata
 import concurrent.futures
 
 # third-part dependencies
@@ -8,7 +9,7 @@ import requests
 _GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
 
 
-class _BaseTranslator(object):
+class _TranslateMinix(object):
 
     """
     Low-level method for HTTP communication with google translation service.
@@ -28,14 +29,60 @@ class _BaseTranslator(object):
             'tl': tgt_lang,
             'ie': 'UTF-8',
             'oe': 'UTF-8',
-            'text': src_text,
         }
 
-        response = requests.get(_GOOGLE_TRANS_URL, params=params)
+        response = requests.post(
+            _GOOGLE_TRANS_URL,
+            data={'q': src_text},
+            params=params,
+        )
         return response.json()
 
 
-class TranslateService(_BaseTranslator):
+class _SplitTextMinix(object):
+    """
+    Split Unicode Text.
+    """
+
+    def _check_punctuation(self, character):
+        """
+        Description:
+            Accept a character and judge whether it is a unicode punctuation or
+            not.
+        Return Value:
+            True for unicode punctuation and False for everything else.
+        """
+        if unicodedata.category(character).startswith('P'):
+            return True
+        else:
+            return False
+
+    def _split_text(self, text, max_length):
+        """
+        Description:
+            Receive unicode text, split it based on max_length(maximum
+            number of characters). Unicode punctuations are the 'split points'
+            of text. If there's no punctuations for split, max_length is adopt
+            for splitting text.
+        Return Value:
+            List cotains split text.
+        """
+        split_text = []
+        start = 0
+        end = max_length
+        while end < len(text):
+            for index in reversed(range(start, end)):
+                if self._check_punctuation(text[index]):
+                    end = index + 1
+                    break
+            split_text.append(text[start: end])
+            start = end
+            end = start + max_length
+        split_text.append(text[start:])
+        return split_text
+
+
+class TranslateService(_TranslateMinix, _SplitTextMinix):
 
     def __init__(self):
         pass
