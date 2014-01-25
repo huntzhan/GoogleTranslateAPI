@@ -19,7 +19,34 @@ _GOOGLE_TTS_URL = 'http://translate.google.cn/translate_tts'
 _MAX_TTS_LENGTH = 99
 
 
-class _TranslateMinix(object):
+class _BaseRequestMinix(object):
+
+    def _request_with_reconnect(self, callback):
+        reconnect_times = _RECONNECT_TIMES
+        while True:
+            try:
+                # POST request
+                response = callback()
+                break
+            except Exception as e:
+                if reconnect_times == 0:
+                    # has already tried _RECONNECT_TIMES times, request failed.
+                    # if so, just let it crash.
+                    raise e
+                else:
+                    reconnect_times -= 1
+        return response
+
+    def _check_threads(self, threads):
+        for future in threads:
+            if future.exception(_TIMEOUT) is None:
+                continue
+            else:
+                # let it crash.
+                raise future.exception()
+
+
+class _TranslateMinix(_BaseRequestMinix):
 
     """
     Low-level method for HTTP communication with google translation service.
@@ -42,24 +69,16 @@ class _TranslateMinix(object):
             'oe': 'UTF-8',
         }
 
-        reconnect_times = _RECONNECT_TIMES
-        while True:
-            try:
-                # POST request
-                response = requests.post(
-                    _GOOGLE_TRANS_URL,
-                    data={'q': src_text},
-                    params=params,
-                )
-                break
-            except Exception as e:
-                if reconnect_times == 0:
-                    # has already tried _RECONNECT_TIMES times, request failed.
-                    # if so, just let it crash.
-                    raise e
-                else:
-                    reconnect_times -= 1
+        def callback():
+            # POST request
+            response = requests.post(
+                _GOOGLE_TRANS_URL,
+                data={'q': src_text},
+                params=params,
+            )
+            return response
 
+        response = self._request_with_reconnect(callback)
         return response.json()
 
     def _merge_jsons(self, jsons):
@@ -139,12 +158,7 @@ class _TranslateMinix(object):
             threads.append(future)
 
         # check whether all threads finished or not.
-        for future in threads:
-            if future.exception(_TIMEOUT) is None:
-                continue
-            else:
-                # let it crash.
-                raise future.exception()
+        self._check_threads(threads)
 
         # now, all is well.
         # assemble JSON dictionary(s).
@@ -159,7 +173,7 @@ class _SplitTextMinix(object):
     Split Unicode Text.
     """
 
-    def _check_punctuation(self, character):
+    def _check_split_point(self, character, unicode_category):
         """
         Description:
             Accept a character and judge whether it is a unicode punctuation or
@@ -168,18 +182,29 @@ class _SplitTextMinix(object):
             True for unicode punctuation and False for everything else.
         """
 
-        if unicodedata.category(character) == 'Po':
+        if unicodedata.category(character) == unicode_category:
             return True
         else:
             return False
+
+    def _find_split_point(self, text, start, end, unicode_category):
+        for index in reversed(range(start, end)):
+            if self._check_split_point(text[index], unicode_category):
+                # (index + 1) means that the punctuation is included in the
+                # sentence(s) to be split. Reason of doing that is based on
+                # the observation of google TTS HTTP request header.
+                end = index + 1
+                break
+        return end
 
     def _split_text(self, text, max_length):
         """
         Description:
             Receive unicode text, split it based on max_length(maximum
             number of characters). Unicode punctuations are the 'split points'
-            of text. If there's no punctuations for split, max_length is adopt
-            for splitting text.
+            of text. If there's no punctuations for split, unicode spaces are
+            treated as split points. Otherwise, max_length is adopt for
+            splitting text.
         Return Value:
             List cotains split text.
         """
@@ -188,13 +213,13 @@ class _SplitTextMinix(object):
         start = 0
         end = max_length
         while end < len(text):
-            for index in reversed(range(start, end)):
-                if self._check_punctuation(text[index]):
-                    # (index + 1) means that the punctuation is included in the
-                    # sentence(s) to be split. Reason of doing that is based on
-                    # the observation of google TTS HTTP request header.
-                    end = index + 1
-                    break
+            # try unicode punctuations.
+            end = self._find_split_point(text, start, end, 'Po')
+            if end == start + max_length:
+                # no avaliable punctuations has been found.
+                # try unicode spaces.
+                end = self._find_split_point(text, start, end, 'Zs')
+
             split_text.append(text[start: end])
             start = end
             end = start + max_length
@@ -258,7 +283,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         return json_result[_SRC]
 
 
-class _TTSRequestMinix(object):
+class _TTSRequestMinix(_BaseRequestMinix):
 
     def _basic_request(self, tgt_lang, src_text, chunk_num, chunk_index):
         """
@@ -277,23 +302,15 @@ class _TTSRequestMinix(object):
             'textlen': len(src_text),
         }
 
-        reconnect_times = _RECONNECT_TIMES
-        while True:
-            try:
-                # GET request
-                response = requests.get(
-                    _GOOGLE_TTS_URL,
-                    params=params,
-                )
-                break
-            except Exception as e:
-                if reconnect_times == 0:
-                    # has already tried _RECONNECT_TIMES times, request failed.
-                    # if so, just let it crash.
-                    raise e
-                else:
-                    reconnect_times -= 1
+        def callback():
+            # GET request
+            response = requests.get(
+                _GOOGLE_TTS_URL,
+                params=params,
+            )
+            return response
 
+        response = self._request_with_reconnect(callback)
         return response.content
 
     def _request(self, tgt_lang, src_texts):
@@ -319,24 +336,19 @@ class _TTSRequestMinix(object):
             threads.append(future)
 
         # check whether all threads finished or not.
-        for future in threads:
-            if future.exception(_TIMEOUT) is None:
-                continue
-            else:
-                # let it crash.
-                raise future.exception()
+        self._check_threads(threads)
 
-        # concatenation
+        # concatenate binary data.
         get_result = lambda x: x.result()
         return b''.join(map(get_result, threads))
 
 
-class TTSService(_SplitTextMinix):
+class TTSService(_TTSRequestMinix, _SplitTextMinix):
 
     def __init__(self):
         pass
 
-    def get_mpeg_binary(self, src_text):
+    def get_mpeg_binary(self, tgt_lang, src_text):
         """
         Description:
             Get MPEG binary data of given source text, as the result of Google
@@ -344,9 +356,10 @@ class TTSService(_SplitTextMinix):
         Return Value:
             MPEG Binary data.
         """
-        pass
+        src_texts = self._split_text(src_text, _MAX_TTS_LENGTH)
+        return self._request(tgt_lang, src_texts)
 
-    def speak(self, src_text):
+    def speak(self, tgt_lang, src_text):
         """
         Description:
             Instead of getting binary data, speak method just 'speak out' the
