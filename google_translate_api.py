@@ -6,14 +6,17 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 
-_GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
 _RECONNECT_TIMES = 5
 _TIMEOUT = 30
 
-_MAX_LENGTH = 2000
+_GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
+_MAX_TRANS_LENGTH = 2000
 _SENTENCES = 'sentences'
 _SRC = 'src'
 _TRANS = 'trans'
+
+_GOOGLE_TTS_URL = 'http://translate.google.cn/translate_tts'
+_MAX_TTS_LENGTH = 99
 
 
 class _TranslateMinix(object):
@@ -213,7 +216,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
 
         # split text
-        src_texts = self._split_text(src_text, _MAX_LENGTH)
+        src_texts = self._split_text(src_text, _MAX_TRANS_LENGTH)
         # request with concurrency
         return self._request(src_lang, tgt_lang, src_texts)
 
@@ -255,7 +258,80 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         return json_result[_SRC]
 
 
-class TTSService(object):
+class _TTSRequestMinix(object):
+
+    def _basic_request(self, tgt_lang, src_text, chunk_num, chunk_index):
+        """
+        Description:
+            GET request for TTS of google translation service.
+        Return Value:
+            MPEG Binary data.
+        """
+
+        params = {
+            'ie': 'UTF-8',
+            'q': src_text,
+            'tl': tgt_lang,
+            'total': chunk_num,
+            'idx': chunk_index,
+            'textlen': len(src_text),
+        }
+
+        reconnect_times = _RECONNECT_TIMES
+        while True:
+            try:
+                # GET request
+                response = requests.get(
+                    _GOOGLE_TTS_URL,
+                    params=params,
+                )
+                break
+            except Exception as e:
+                if reconnect_times == 0:
+                    # has already tried _RECONNECT_TIMES times, request failed.
+                    # if so, just let it crash.
+                    raise e
+                else:
+                    reconnect_times -= 1
+
+        return response.content
+
+    def _request(self, tgt_lang, src_texts):
+        """
+        Description:
+            Similar to _TranslateMinix._request. src_texts should be a list
+            contains texts to generate audio. Concurrent request is applied.
+        Return Value:
+            MPEG Binary data.
+        """
+
+        assert type(src_texts) is list
+        executor = ThreadPoolExecutor(max_workers=len(src_texts))
+        threads = []
+        for index, src_text in enumerate(src_texts):
+            future = executor.submit(
+                self._basic_request,
+                tgt_lang,
+                src_text,
+                len(src_texts),
+                index,
+            )
+            threads.append(future)
+
+        # check whether all threads finished or not.
+        for future in threads:
+            if future.exception(_TIMEOUT) is None:
+                continue
+            else:
+                # let it crash.
+                raise future.exception()
+
+        # concatenation
+        get_result = lambda x: x.result()
+        return b''.join(map(get_result, threads))
+
+
+class TTSService(_SplitTextMinix):
 
     def __init__(self):
         pass
