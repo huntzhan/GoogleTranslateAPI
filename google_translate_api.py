@@ -243,25 +243,16 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
             sentences.append(item[_TRANS])
         return ''.join(sentences)
 
-    def languages(self):
-        """
-        Description:
-            Get supported language.
-        Return Value:
-            List contains avaliable language codes.
-        """
-        pass
-
     def detect(self, src_text):
         """
         Description:
             Detect the language of given source text.
         Return Value:
-            String corresponding to the language code of given source text.
+            Dictionary contains language information.
         """
-        # for long sentence, simples and query.
-        # for short sentence
-        pass
+
+        json_result = self._translate('', '', src_text)
+        return json_result[_SRC]
 
 
 class TTSService(object):
