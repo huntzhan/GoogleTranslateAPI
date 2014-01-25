@@ -5,12 +5,34 @@ import concurrent.futures
 import requests
 
 
+_GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
+
+
 class _BaseTranslator(object):
 
     """
     Low-level method for HTTP communication with google translation service.
     """
-    pass
+
+    def _request(self, src_lang, tgt_lang, src_text):
+        """
+        Description:
+            GET request to translate.google.com.
+        Return Value:
+            Dictionary contains unicode JSON data.
+        """
+
+        params = {
+            'client': 'z',
+            'sl': src_lang,
+            'tl': tgt_lang,
+            'ie': 'UTF-8',
+            'oe': 'UTF-8',
+            'text': src_text,
+        }
+
+        response = requests.get(_GOOGLE_TRANS_URL, params=params)
+        return response.json()
 
 
 class TranslateService(_BaseTranslator):
@@ -27,7 +49,7 @@ class TranslateService(_BaseTranslator):
         Return Value:
             Dictionary contains information about the result of translation.
         """
-        pass
+        return self._request(src_lang, tgt_lang, src_text)
 
     def trans_sentence(self, src_lang, tgt_lang, src_text):
         """
@@ -36,6 +58,9 @@ class TranslateService(_BaseTranslator):
         Return Value:
             Dictionary contains information about the result of translation.
         """
+        # split text
+        # query with concurrency
+        # assemble results
         pass
 
     def languages(self):
@@ -54,7 +79,9 @@ class TranslateService(_BaseTranslator):
         Return Value:
             String corresponding to the language code of given source text.
         """
-        pass
+        # for long sentence, simples and query.
+        # for short sentence
+        return self._request('', '', src_text)['src']
 
 
 class TTSService(object):
