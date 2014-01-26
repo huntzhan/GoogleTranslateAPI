@@ -169,9 +169,6 @@ class _TranslateMinix(_BaseRequestMinix):
 
 
 class _SplitTextMinix(object):
-    """
-    Split Unicode Text.
-    """
 
     def _check_split_point(self, character, unicode_category):
         """
@@ -187,8 +184,14 @@ class _SplitTextMinix(object):
         else:
             return False
 
-    def _find_split_point(self, text, start, end, unicode_category):
-        for index in reversed(range(start, end)):
+    def _find_split_point(self, text, start, end,
+                          unicode_category, reverse=True):
+        # generate indices
+        indices = range(start, end)
+        if reverse:
+            indices = reversed(indices)
+        # find split point
+        for index in indices:
             if self._check_split_point(text[index], unicode_category):
                 # (index + 1) means that the punctuation is included in the
                 # sentence(s) to be split. Reason of doing that is based on
@@ -212,13 +215,20 @@ class _SplitTextMinix(object):
         split_text = []
         start = 0
         end = max_length
+        reverse_flag = True
+
         while end < len(text):
             # try unicode punctuations.
-            end = self._find_split_point(text, start, end, 'Po')
+            end = self._find_split_point(text, start, end, 'Po', reverse_flag)
+            # reset reverse_flag to True
+            reverse_flag = True
+
             if end == start + max_length:
                 # no avaliable punctuations has been found.
                 # try unicode spaces.
                 end = self._find_split_point(text, start, end, 'Zs')
+                # make next seach to begin at left.
+                reverse_flag = False
 
             split_text.append(text[start: end])
             start = end
@@ -358,13 +368,3 @@ class TTSService(_TTSRequestMinix, _SplitTextMinix):
         """
         src_texts = self._split_text(src_text, _MAX_TTS_LENGTH)
         return self._request(tgt_lang, src_texts)
-
-    def speak(self, tgt_lang, src_text):
-        """
-        Description:
-            Instead of getting binary data, speak method just 'speak out' the
-            given source text.
-        Return Value:
-            None
-        """
-        pass
