@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 # standrad packages
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
