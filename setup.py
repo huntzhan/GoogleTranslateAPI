@@ -10,7 +10,7 @@ setup(
 
     url='https://github.com/haoxun/GoogleTranslateAPI',
     license='MIT',
-    description='API of google trnaslation.',
+    description='API of google translation service.',
     long_description=open('README.rst').read(),
 
     install_requires=['requests', 'futures'],
