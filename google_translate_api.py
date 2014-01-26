@@ -187,7 +187,14 @@ class _SplitTextMinix(object):
 
     def _find_split_point(self, text, start, end,
                           unicode_category, reverse=True):
-        # generate indices
+        """
+        Description:
+            Try to find a split point in a range of some text. Be clear that
+            the search range of text is [start, end-1].
+        Return Value:
+            int value in the range of [start, end].
+        """
+        # generate indices in range [start, end-1].
         indices = range(start, end)
         if reverse:
             indices = reversed(indices)
@@ -215,7 +222,10 @@ class _SplitTextMinix(object):
 
         split_text = []
         start = 0
-        end = max_length
+        # search range is [start, end-1], thus, for the maximum number of
+        # characters to be search equals to max_length, the increment should be
+        # (max_length + 1).
+        end = max_length + 1
         reverse_flag = True
 
         while end < len(text):
@@ -224,7 +234,7 @@ class _SplitTextMinix(object):
             # reset reverse_flag to True
             reverse_flag = True
 
-            if end == start + max_length:
+            if end == start + max_length + 1:
                 # no avaliable punctuations has been found.
                 # try unicode spaces.
                 end = self._find_split_point(text, start, end, 'Zs')
@@ -233,7 +243,7 @@ class _SplitTextMinix(object):
 
             split_text.append(text[start: end])
             start = end
-            end = start + max_length
+            end = start + max_length + 1
         split_text.append(text[start:])
         return split_text
 

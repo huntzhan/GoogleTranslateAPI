@@ -54,5 +54,44 @@ class _BaseRequestMinixTest(unittest.TestCase):
             with self.assertRaises(Exception):
                 self._minix._check_threads(threads)
 
+
+class _SplitTextMinixTest(unittest.TestCase):
+
+    def setUp(self):
+        self._minix = api._SplitTextMinix()
+
+    def test_find_split_point(self):
+        text = "This is a sentence. This is another sentence."
+
+        # boundary case, end equals to len(text) - 1.
+        end = self._minix._find_split_point(text, 0, len(text), 'Po')
+        self.assertEqual(end, len(text))
+
+        # boundary case, end equals to len(text)
+        with self.assertRaises(Exception):
+            self._minix._find_split_point(text, 0, len(text)+1, 'Po')
+
+        # assert to find first period.
+        end = self._minix._find_split_point(text, 0, len(text)-1, 'Po')
+        self.assertEqual(end, text.find('.')+1)
+
+    def test_split_text(self):
+        sentence = " This is a sentence."
+
+        # boundary case, max_length equals to the length of sentence.
+        split_text = self._minix._split_text(sentence*2, len(sentence))
+        self.assertEqual(split_text, [sentence, sentence])
+
+        # boundary case, max_length equals to the length of sentence minus one,
+        # which means the first sentence would be split in the middle.
+        split_text = self._minix._split_text(sentence*2, len(sentence)-1)
+        result = [
+            " This is a ",
+            "sentence.",
+            sentence,
+        ]
+        self.assertEqual(split_text, result)
+
+
 if __name__ == '__main__':
     unittest.main()
