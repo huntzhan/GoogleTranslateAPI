@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 # standrad packages
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
-
 # third-part dependencies
 import requests
 
@@ -226,6 +225,7 @@ class _SplitTextMinix(object):
         # characters to be search equals to max_length, the increment should be
         # (max_length + 1).
         end = max_length + 1
+        # reverse flag is for the case that a sentence is split in the middle.
         reverse_flag = True
 
         while end < len(text):

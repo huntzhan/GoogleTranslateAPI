@@ -9,17 +9,3 @@ This project is mainly inspired by [goslate](https://bitbucket.org/zhuoqiang/gos
 
 * Normal translation serve, including single-word translation with multiple explanation and long sentences translation.
 * Support Google TTS and phonogram.
-
-# Recource and Related Project
-
-* requests
-	* http://requests.readthedocs.org/en/latest/
-* URL
-	* http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
-* goslate
-	* zhuoqiang.me/goslate-free-google-translate-api.html
-	* https://bitbucket.org/zhuoqiang/goslate
-* TTS
-	* https://github.com/hungtruong/Google-Translate-TTS/
-* PyAudio
-	* http://people.csail.mit.edu/hubert/pyaudio

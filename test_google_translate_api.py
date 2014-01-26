@@ -14,22 +14,22 @@ class _BaseRequestMinixTest(unittest.TestCase):
     def test_request_reconnect(self):
 
         def raise_exception(retry_times):
-            counter = retry_times
+            counter = {0: retry_times}
+
             def wrapper():
-                nonlocal counter
-                if counter == 0:
+                if counter[0] == 0:
                     return
                 else:
-                    counter -= 1
+                    counter[0] -= 1
                     raise Exception
             return wrapper
 
-        for retry_times in range(1, api._RECONNECT_TIMES+1):
+        for retry_times in range(1, api._RECONNECT_TIMES + 1):
             callback = raise_exception(retry_times)
             self._minix._request_with_reconnect(callback)
 
         with self.assertRaises(Exception):
-            callback = raise_exception(api._RECONNECT_TIMES+1)
+            callback = raise_exception(api._RECONNECT_TIMES + 1)
             self._minix._request_with_reconnect(callback)
 
     def test_check_threads(self):
@@ -43,12 +43,12 @@ class _BaseRequestMinixTest(unittest.TestCase):
 
         with ThreadPoolExecutor(max_workers=size) as executor:
             threads = []
-            for i in range(size-1):
+            for i in range(size - 1):
                 future = executor.submit(good_func)
             # append bad func
             future = executor.submit(bad_func)
             threads.insert(
-                random.randint(0, size-1),
+                random.randint(0, size - 1),
                 future,
             )
             with self.assertRaises(Exception):
@@ -69,28 +69,32 @@ class _SplitTextMinixTest(unittest.TestCase):
 
         # boundary case, end equals to len(text)
         with self.assertRaises(Exception):
-            self._minix._find_split_point(text, 0, len(text)+1, 'Po')
+            self._minix._find_split_point(text, 0, len(text) + 1, 'Po')
 
         # assert to find first period.
-        end = self._minix._find_split_point(text, 0, len(text)-1, 'Po')
-        self.assertEqual(end, text.find('.')+1)
+        end = self._minix._find_split_point(text, 0, len(text) - 1, 'Po')
+        self.assertEqual(end, text.find('.') + 1)
 
     def test_split_text(self):
         sentence = " This is a sentence."
 
         # boundary case, max_length equals to the length of sentence.
-        split_text = self._minix._split_text(sentence*2, len(sentence))
+        split_text = self._minix._split_text(sentence * 2, len(sentence))
         self.assertEqual(split_text, [sentence, sentence])
 
         # boundary case, max_length equals to the length of sentence minus one,
         # which means the first sentence would be split in the middle.
-        split_text = self._minix._split_text(sentence*2, len(sentence)-1)
+        split_text = self._minix._split_text(sentence * 2, len(sentence) - 1)
         result = [
             " This is a ",
             "sentence.",
             sentence,
         ]
         self.assertEqual(split_text, result)
+
+        # max_length greater than length of text.
+        split_text = self._minix._split_text(sentence, len(sentence) * 10)
+        self.assertEqual(split_text, [sentence])
 
 
 if __name__ == '__main__':
