@@ -64,7 +64,8 @@ class _SplitTextMinixTest(unittest.TestCase):
         text = "This is a sentence. This is another sentence."
 
         # boundary case, end equals to len(text) - 1.
-        end = self._minix._find_split_point(text, 0, len(text), 'Po')
+        modify_flag, end = self._minix._find_split_point(text, 0, len(text),
+                                                         'Po')
         self.assertEqual(end, len(text))
 
         # boundary case, end equals to len(text)
@@ -72,7 +73,10 @@ class _SplitTextMinixTest(unittest.TestCase):
             self._minix._find_split_point(text, 0, len(text) + 1, 'Po')
 
         # assert to find first period.
-        end = self._minix._find_split_point(text, 0, len(text) - 1, 'Po')
+        modify_flag, end = self._minix._find_split_point(text,
+                                                         0,
+                                                         len(text) - 1,
+                                                         'Po')
         self.assertEqual(end, text.find('.') + 1)
 
     def test_split_text(self):
@@ -88,9 +92,14 @@ class _SplitTextMinixTest(unittest.TestCase):
         result = [
             " This is a ",
             "sentence.",
-            sentence,
+            " This is a ",
+            "sentence.",
         ]
         self.assertEqual(split_text, result)
+
+        # boundary case, last character is a unicode separater.
+        split_text = self._minix._split_text(sentence + ' ', len(sentence))
+        self.assertEqual(split_text, [sentence, ' '])
 
         # max_length greater than length of text.
         split_text = self._minix._split_text(sentence, len(sentence) * 10)

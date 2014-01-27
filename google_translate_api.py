@@ -198,14 +198,16 @@ class _SplitTextMinix(object):
         if reverse:
             indices = reversed(indices)
         # find split point
+        modify_flag = False
         for index in indices:
             if self._check_split_point(text[index], unicode_category):
                 # (index + 1) means that the punctuation is included in the
                 # sentence(s) to be split. Reason of doing that is based on
                 # the observation of google TTS HTTP request header.
+                modify_flag = True
                 end = index + 1
                 break
-        return end
+        return modify_flag, end
 
     def _split_text(self, text, max_length):
         """
@@ -221,29 +223,28 @@ class _SplitTextMinix(object):
 
         split_text = []
         start = 0
-        # search range is [start, end-1], thus, for the maximum number of
-        # characters to be search equals to max_length, the increment should be
-        # (max_length + 1).
-        end = max_length + 1
+        end = max_length
         # reverse flag is for the case that a sentence is split in the middle.
         reverse_flag = True
 
         while end < len(text):
             # try unicode punctuations.
-            end = self._find_split_point(text, start, end, 'Po', reverse_flag)
+            modify_flag, end = self._find_split_point(text, start, end,
+                                                      'Po', reverse_flag)
             # reset reverse_flag to True
             reverse_flag = True
-
-            if end == start + max_length + 1:
+            if not modify_flag:
                 # no avaliable punctuations has been found.
                 # try unicode spaces.
-                end = self._find_split_point(text, start, end, 'Zs')
+                modify_flag, end = self._find_split_point(text, start, end,
+                                                          'Zs', reverse_flag)
                 # make next seach to begin at left.
                 reverse_flag = False
 
             split_text.append(text[start: end])
+            # update indices
             start = end
-            end = start + max_length + 1
+            end = start + max_length
         split_text.append(text[start:])
         return split_text
 
