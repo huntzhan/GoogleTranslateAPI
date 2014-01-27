@@ -120,7 +120,7 @@ class _TranslateMinixTest(unittest.TestCase):
         self.assertIn(api._SRC, result)
 
         # zh-CN to en
-        result = self._minix._basic_request('zh-CN','en', '测试')
+        result = self._minix._basic_request('zh-CN', 'en', '测试')
         self.assertIn(api._SENTENCES, result)
         self.assertIn(api._SRC, result)
 
@@ -151,10 +151,6 @@ class _TranslateMinixTest(unittest.TestCase):
             api._SRC: {'en': 0.5, 'zh-CN': 0.5},
         }
         self.assertEqual(json, expect_merge_json)
-
-
-
-
 
 
 if __name__ == '__main__':

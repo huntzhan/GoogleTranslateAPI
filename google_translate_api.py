@@ -105,7 +105,8 @@ class _TranslateMinix(_BaseRequestMinix):
 
         if len(jsons) == 1:
             # adjust src
-            single_json = jsons[0]
+            # .copy() is call for not modifying the original object.
+            single_json = jsons[0].copy()
             single_json[_SRC] = {single_json[_SRC]: 1.0}
             return single_json
 
