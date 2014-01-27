@@ -153,5 +153,54 @@ class _TranslateMinixTest(unittest.TestCase):
         self.assertEqual(json, expect_merge_json)
 
 
+class TranslateServiceTest(unittest.TestCase):
+
+    def setUp(self):
+        self.translator = api.TranslateService()
+
+    def test_trans_details(self):
+
+        # en to zh-CN
+        result = self.translator.trans_details(
+            'en',
+            'zh-CN',
+            'test',
+        )
+        self.assertIn(api._SENTENCES, result)
+        self.assertIn(api._SRC, result)
+        sentence = result[api._SENTENCES][0]
+        self.assertIn(api._TRANS, sentence)
+
+        # zh-CN to en
+        result = self.translator.trans_details(
+            'zh-CN',
+            'en',
+            '测试',
+        )
+        self.assertIn(api._SENTENCES, result)
+        self.assertIn(api._SRC, result)
+        sentence = result[api._SENTENCES][0]
+        self.assertIn(api._TRANS, sentence)
+
+    def test_trans_sentence(self):
+
+        result = self.translator.trans_sentence(
+            'en',
+            'zh-CN',
+            'hello world.',
+        )
+        self.assertEqual(result, '你好世界。')
+
+    def test_detect(self):
+
+        # en
+        result = self.translator.detect('test')
+        self.assertEqual(result, {'en': 1.0})
+
+        # zh-CN
+        result = self.translator.detect('测试')
+        self.assertEqual(result, {'zh-CN': 1.0})
+
+
 if __name__ == '__main__':
     unittest.main()
