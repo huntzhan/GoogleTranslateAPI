@@ -87,7 +87,7 @@ class _SplitTextMinixTest(unittest.TestCase):
         self.assertEqual(split_text, [sentence, sentence])
 
         # boundary case, max_length equals to the length of sentence minus one,
-        # which means the first sentence would be split in the middle.
+        # which means both sentences would be split in the middle.
         split_text = self._minix._split_text(sentence * 2, len(sentence) - 1)
         result = [
             " This is a ",
@@ -104,6 +104,57 @@ class _SplitTextMinixTest(unittest.TestCase):
         # max_length greater than length of text.
         split_text = self._minix._split_text(sentence, len(sentence) * 10)
         self.assertEqual(split_text, [sentence])
+
+
+class _TranslateMinixTest(unittest.TestCase):
+
+    def setUp(self):
+        self._minix = api._TranslateMinix()
+
+    def test_basic_request(self):
+
+        # en to zh-CN
+        result = self._minix._basic_request('en', 'zh-CN', 'test')
+        self.assertIn('dict', result)
+        self.assertIn(api._SENTENCES, result)
+        self.assertIn(api._SRC, result)
+
+        # zh-CN to en
+        result = self._minix._basic_request('zh-CN','en', '测试')
+        self.assertIn(api._SENTENCES, result)
+        self.assertIn(api._SRC, result)
+
+    def test_merge_jsons(self):
+
+        json_1st = {
+            api._SENTENCES: [{api._TRANS: 'whatever'}],
+            api._SRC: 'en',
+        }
+        json_2nd = {
+            api._SENTENCES: [{api._TRANS: 'whatever else'}],
+            api._SRC: 'zh-CN',
+        }
+
+        # for 1st
+        json = self._minix._merge_jsons([json_1st])
+        expect_json = {
+            api._SENTENCES: [{api._TRANS: 'whatever'}],
+            api._SRC: {'en': 1.0},
+        }
+        self.assertEqual(json, expect_json)
+
+        # merge 1st and 2nd
+        json = self._minix._merge_jsons([json_1st, json_2nd])
+        expect_merge_json = {
+            api._SENTENCES: [{api._TRANS: 'whatever'},
+                             {api._TRANS: 'whatever else'}],
+            api._SRC: {'en': 0.5, 'zh-CN': 0.5},
+        }
+        self.assertEqual(json, expect_merge_json)
+
+
+
+
 
 
 if __name__ == '__main__':

@@ -103,7 +103,6 @@ class _TranslateMinix(_BaseRequestMinix):
             Dictionary contains unicode JSON data.
         """
 
-        assert type(jsons) is list
         if len(jsons) == 1:
             # adjust src
             single_json = jsons[0]
@@ -143,8 +142,6 @@ class _TranslateMinix(_BaseRequestMinix):
         Return Value:
             Dictionary contains unicode JSON data.
         """
-
-        assert type(src_texts) is list
 
         executor = ThreadPoolExecutor(max_workers=len(src_texts))
         threads = []
@@ -344,7 +341,6 @@ class _TTSRequestMinix(_BaseRequestMinix):
             MPEG Binary data.
         """
 
-        assert type(src_texts) is list
         executor = ThreadPoolExecutor(max_workers=len(src_texts))
         threads = []
         for index, src_text in enumerate(src_texts):
