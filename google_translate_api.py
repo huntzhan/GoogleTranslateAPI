@@ -268,9 +268,10 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
     def trans_details(self, src_lang, tgt_lang, src_text):
         """
         Description:
-            trans_details is used to translate single word. Different from
-            trans_sentence, trans_details would return a dictionary containing
-            more related information.
+            Accept both UTF-8 or decoded unicode strings. trans_details means
+            'translate in details'. Different from trans_sentence,
+            trans_details method would return a dictionary containing more
+            related information.
         Return Value:
             Dictionary contains information about the result of translation.
         """
@@ -280,7 +281,8 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
     def trans_sentence(self, src_lang, tgt_lang, src_text):
         """
         Description:
-            trans_sentence returns result of (long) sentence translation.
+            Accept both UTF-8 or decoded unicode strings. trans_sentence
+            returns result of (long) sentence translation.
         Return Value:
             String contains information about the result of translation.
         """
@@ -294,7 +296,8 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
     def detect(self, src_text):
         """
         Description:
-            Detect the language of given source text.
+            Accept both UTF-8 or decoded unicode strings. Detect the language
+            of given source text.
         Return Value:
             Dictionary contains language information.
         """
@@ -370,7 +373,8 @@ class TTSService(_TTSRequestMinix, _SplitTextMinix):
     def get_mpeg_binary(self, tgt_lang, src_text):
         """
         Description:
-            Get MPEG binary data of given source text, as the result of Google
+            Accept both UTF-8 or decoded unicode strings. Get MPEG binary data
+            of given source text, as the result of Google
             TTS service.
         Return Value:
             MPEG Binary data.

@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='google_translate_api',
-    version='0.1',
+    version='0.2',
     author='Zhan Haoxun',
     author_email='programmer.zhx@gmail.com',
 
