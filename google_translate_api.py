@@ -226,17 +226,15 @@ class _SplitTextMinix(object):
         reverse_flag = True
 
         while end < len(text):
-            # try unicode punctuations.
-            modify_flag, end = self._find_split_point(text, start, end,
+            split_po, end_po = self._find_split_point(text, start, end,
                                                       'Po', reverse_flag)
-            # reset reverse_flag to True
-            reverse_flag = True
-            if not modify_flag:
-                # no avaliable punctuations has been found.
-                # try unicode spaces.
-                modify_flag, end = self._find_split_point(text, start, end,
-                                                          'Zs', reverse_flag)
-                # make next seach to begin at left.
+            split_zs, end_zs = self._find_split_point(text, start, end,
+                                                      'Zs', reverse_flag)
+            if split_po:
+                end = end_po
+                reverse_flag = True
+            elif split_zs:
+                end = end_zs
                 reverse_flag = False
 
             split_text.append(text[start: end])
