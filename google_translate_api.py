@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 from __future__ import unicode_literals
 # standrad packages
 import unicodedata
@@ -272,6 +274,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
             related information.
         Return Value:
             Dictionary contains information about the result of translation.
+            Type of Data in the dictionary is Unicode(String in Py3).
         """
 
         return self._translate(src_lang, tgt_lang, src_text)
@@ -282,7 +285,8 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
             Accept both UTF-8 or decoded unicode strings. trans_sentence
             returns result of (long) sentence translation.
         Return Value:
-            String contains information about the result of translation.
+            Unicode String(Unicode in Py2 and String in Py3) contains
+            information about the result of translation.
         """
 
         json_result = self._translate(src_lang, tgt_lang, src_text)
@@ -297,7 +301,8 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
             Accept both UTF-8 or decoded unicode strings. Detect the language
             of given source text.
         Return Value:
-            Dictionary contains language information.
+            Dictionary contains language information. Type of Data in the
+            dictionary is Unicode(String in Py3).
         """
 
         json_result = self._translate('', '', src_text)
