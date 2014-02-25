@@ -339,7 +339,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
 
         json_result = self._translate(src_lang, tgt_lang, src_text)
-        return self.assemble_senteces_from_json(json_result)
+        return self.get_senteces_from_json(json_result)
 
     def detect(self, src_text):
         """
@@ -352,10 +352,10 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
 
         json_result = self._translate('', '', src_text)
-        return json_result[SRC]
+        return self.get_src_language_from_json(json_result)
 
     @classmethod
-    def assemble_senteces_from_json(cls, json_data):
+    def get_senteces_from_json(cls, json_data):
         """
         Return:
             Unicode strings.
@@ -368,11 +368,21 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         return ''.join(sentences)
 
     @classmethod
-    def convert_json_to_key_value_pairs(cls, json_data):
+    def has_pos_terms_pairs(cls, json_data):
+        return DICT in json_data
+
+    @classmethod
+    def get_pos_terms_pairs_from_json(cls, json_data):
+        assert DICT in json_data,\
+            'pos-temrs pair not exist, try cls.has_pos_terms_pairs'
         for entity in json_data.get(DICT):
             pos = entity[POS] or 'error_pos'
-            vals = [val for val in entity[TERMS]]
+            vals = entity[TERMS][:]
             yield pos, vals
+
+    @classmethod
+    def get_src_language_from_json(cls, json_data):
+        return json_data[SRC]
 
 
 class _TTSRequestMinix(_BaseRequestMinix):

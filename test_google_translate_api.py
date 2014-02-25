@@ -204,6 +204,42 @@ class TranslateServiceTest(unittest.TestCase):
         result = self.translator.detect('测试')
         self.assertEqual(result, {'zh-CN': 1.0})
 
+    def test_get_src_language_from_json(self):
+        func_to_be_test = api.TranslateService.get_src_language_from_json
+        makeup_json = {
+            api.SRC: {'en', 1.0},
+        }
+        self.assertEqual(func_to_be_test(makeup_json), {'en', 1.0})
+
+    def test_has_pos_terms_pairs(self):
+        func_to_be_test = api.TranslateService.has_pos_terms_pairs
+        makeup_json_with_DICT = {
+            api.DICT: 'whatever',
+        }
+        makeup_json_without_DICT = {
+        }
+        self.assertEqual(func_to_be_test(makeup_json_with_DICT), True)
+        self.assertEqual(func_to_be_test(makeup_json_without_DICT), False)
+
+    def test_get_pos_terms_pairs_from_json(self):
+        func_to_be_test = api.TranslateService.get_pos_terms_pairs_from_json
+        makeup_json_with_DICT = {
+            api.DICT: [
+                {api.POS: 'noun', api.TERMS: ['a', 'b', 'c']},
+                {api.POS: 'verb', api.TERMS: ['d', 'e', 'f']},
+            ]
+        }
+        for pos, terms in func_to_be_test(makeup_json_with_DICT):
+            self.assertIn(pos, ['noun', 'verb'])
+            for term in terms:
+                self.assertIn(term, 'abcdef')
+
+        makeup_json_without_DICT = {
+        }
+        with self.assertRaises(Exception):
+            for pos, terms in func_to_be_test(makeup_json_without_DICT):
+                pass
+
     # def test_print_json(self):
     #     from pprint import pprint
     #     result = self.translator.trans_details(
