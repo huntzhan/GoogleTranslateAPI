@@ -119,39 +119,39 @@ class _TranslateMinixTest(unittest.TestCase):
         # en to zh-CN
         result = self._minix._basic_request('en', 'zh-CN', 'test')
         self.assertIn('dict', result)
-        self.assertIn(api._SENTENCES, result)
-        self.assertIn(api._SRC, result)
+        self.assertIn(api.SENTENCES, result)
+        self.assertIn(api.SRC, result)
 
         # zh-CN to en
         result = self._minix._basic_request('zh-CN', 'en', '测试')
-        self.assertIn(api._SENTENCES, result)
-        self.assertIn(api._SRC, result)
+        self.assertIn(api.SENTENCES, result)
+        self.assertIn(api.SRC, result)
 
     def test_merge_jsons(self):
 
         json_1st = {
-            api._SENTENCES: [{api._TRANS: 'whatever'}],
-            api._SRC: 'en',
+            api.SENTENCES: [{api.TRANS: 'whatever'}],
+            api.SRC: 'en',
         }
         json_2nd = {
-            api._SENTENCES: [{api._TRANS: 'whatever else'}],
-            api._SRC: 'zh-CN',
+            api.SENTENCES: [{api.TRANS: 'whatever else'}],
+            api.SRC: 'zh-CN',
         }
 
         # for 1st
         json = self._minix._merge_jsons([json_1st])
         expect_json = {
-            api._SENTENCES: [{api._TRANS: 'whatever'}],
-            api._SRC: {'en': 1.0},
+            api.SENTENCES: [{api.TRANS: 'whatever'}],
+            api.SRC: {'en': 1.0},
         }
         self.assertEqual(json, expect_json)
 
         # merge 1st and 2nd
         json = self._minix._merge_jsons([json_1st, json_2nd])
         expect_merge_json = {
-            api._SENTENCES: [{api._TRANS: 'whatever'},
-                             {api._TRANS: 'whatever else'}],
-            api._SRC: {'en': 0.5, 'zh-CN': 0.5},
+            api.SENTENCES: [{api.TRANS: 'whatever'},
+                            {api.TRANS: 'whatever else'}],
+            api.SRC: {'en': 0.5, 'zh-CN': 0.5},
         }
         self.assertEqual(json, expect_merge_json)
 
@@ -169,10 +169,10 @@ class TranslateServiceTest(unittest.TestCase):
             'zh-CN',
             'test',
         )
-        self.assertIn(api._SENTENCES, result)
-        self.assertIn(api._SRC, result)
-        sentence = result[api._SENTENCES][0]
-        self.assertIn(api._TRANS, sentence)
+        self.assertIn(api.SENTENCES, result)
+        self.assertIn(api.SRC, result)
+        sentence = result[api.SENTENCES][0]
+        self.assertIn(api.TRANS, sentence)
 
         # zh-CN to en
         result = self.translator.trans_details(
@@ -180,10 +180,10 @@ class TranslateServiceTest(unittest.TestCase):
             'en',
             '测试',
         )
-        self.assertIn(api._SENTENCES, result)
-        self.assertIn(api._SRC, result)
-        sentence = result[api._SENTENCES][0]
-        self.assertIn(api._TRANS, sentence)
+        self.assertIn(api.SENTENCES, result)
+        self.assertIn(api.SRC, result)
+        sentence = result[api.SENTENCES][0]
+        self.assertIn(api.TRANS, sentence)
 
     def test_trans_sentence(self):
 
@@ -203,6 +203,22 @@ class TranslateServiceTest(unittest.TestCase):
         # zh-CN
         result = self.translator.detect('测试')
         self.assertEqual(result, {'zh-CN': 1.0})
+
+    # def test_print_json(self):
+    #     from pprint import pprint
+    #     result = self.translator.trans_details(
+    #         'en',
+    #         'zh-CN',
+    #         'test',
+    #     )
+    #     pprint(result)
+
+    #     result = self.translator.trans_details(
+    #         'en',
+    #         'zh-CN',
+    #         'hello world.',
+    #     )
+    #     pprint(result)
 
 
 if __name__ == '__main__':

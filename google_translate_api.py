@@ -1,5 +1,3 @@
-# -*- coding: UTF-8 -*-
-
 from __future__ import unicode_literals
 # standrad packages
 import unicodedata
@@ -8,17 +6,68 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 
+_UTF8 = 'UTF-8'
 _RECONNECT_TIMES = 5
 _TIMEOUT = 30
 
 _GOOGLE_TRANS_URL = 'http://translate.google.com/translate_a/t'
 _MAX_TRANS_LENGTH = 2000
-_SENTENCES = 'sentences'
-_SRC = 'src'
-_TRANS = 'trans'
 
 _GOOGLE_TTS_URL = 'http://translate.google.cn/translate_tts'
 _MAX_TTS_LENGTH = 99
+
+
+# keys in json data.
+SENTENCES = 'sentences'
+TRANS = 'trans'
+
+DICT = 'dict'
+POS = 'pos'
+TERMS = 'terms'
+
+SRC = 'src'
+
+"""
+JSON Data Format.
+
+Single word format:
+{
+    DICT: [
+        {
+            POS: u'noun',
+            TERMS: [u'result1', u'result2', ...],
+        },
+        {
+            POS: u'verb',
+            TERMS: [u'result1', u'result2', ...],
+        },
+        ...
+    ],
+    SENTENCES: [
+        {
+            TRANS: u'brbrbr...',
+        },
+        ...
+    ],
+    SRC: {
+        u'en': 1.0,
+    },
+}
+
+Multi-Word sentences format:
+{
+    SENTENCES: [
+        {
+            TRANS: u'brbrbr...',
+        },
+        ...
+    ],
+    SRC: {
+        u'en': 0.8,
+        u'zh_CN': 0.2,
+    },
+}
+"""
 
 
 class _BaseRequestMinix(object):
@@ -67,8 +116,8 @@ class _TranslateMinix(_BaseRequestMinix):
             'client': 'z',
             'sl': src_lang,
             'tl': tgt_lang,
-            'ie': 'UTF-8',
-            'oe': 'UTF-8',
+            'ie': _UTF8,
+            'oe': _UTF8,
         }
 
         def callback():
@@ -109,19 +158,19 @@ class _TranslateMinix(_BaseRequestMinix):
             # adjust src
             # .copy() is call for not modifying the original object.
             single_json = jsons[0].copy()
-            single_json[_SRC] = {single_json[_SRC]: 1.0}
+            single_json[SRC] = {single_json[SRC]: 1.0}
             return single_json
 
         merged_json = {
-            _SENTENCES: [],
-            _SRC: {},
+            SENTENCES: [],
+            SRC: {},
         }
-        langs = merged_json[_SRC]
+        langs = merged_json[SRC]
         lang_counter = 0
         for json in jsons:
-            merged_json[_SENTENCES].extend(json[_SENTENCES])
+            merged_json[SENTENCES].extend(json[SENTENCES])
 
-            lang_code = json[_SRC]
+            lang_code = json[SRC]
             if lang_code in langs:
                 langs[lang_code] += 1
             else:
@@ -290,10 +339,7 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
 
         json_result = self._translate(src_lang, tgt_lang, src_text)
-        sentences = []
-        for item in json_result[_SENTENCES]:
-            sentences.append(item[_TRANS])
-        return ''.join(sentences)
+        return self.assemble_senteces_from_json(json_result)
 
     def detect(self, src_text):
         """
@@ -306,7 +352,27 @@ class TranslateService(_TranslateMinix, _SplitTextMinix):
         """
 
         json_result = self._translate('', '', src_text)
-        return json_result[_SRC]
+        return json_result[SRC]
+
+    @classmethod
+    def assemble_senteces_from_json(cls, json_data):
+        """
+        Return:
+            Unicode strings.
+        """
+
+        sentences = map(
+            lambda x: x[TRANS],
+            json_data[SENTENCES],
+        )
+        return ''.join(sentences)
+
+    @classmethod
+    def convert_json_to_key_value_pairs(cls, json_data):
+        for entity in json_data.get(DICT):
+            pos = entity[POS] or 'error_pos'
+            vals = [val for val in entity[TERMS]]
+            yield pos, vals
 
 
 class _TTSRequestMinix(_BaseRequestMinix):
@@ -320,7 +386,7 @@ class _TTSRequestMinix(_BaseRequestMinix):
         """
 
         params = {
-            'ie': 'UTF-8',
+            'ie': _UTF8,
             'q': src_text,
             'tl': tgt_lang,
             'total': chunk_num,
